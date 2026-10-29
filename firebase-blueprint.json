@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "contact_messages": {
+      "title": "Contact Messages",
+      "description": "Messages sent from portfolio contact form",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "project_bookings": {
+      "title": "Project Bookings",
+      "description": "Project booking and consultation requests",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "projectType": { "type": "string" },
+        "budget": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "projectType"]
+    },
+    "ai_queries": {
+      "title": "AI Core Queries",
+      "description": "Questions asked to Orjo AI Assistant",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "answer"]
+    },
+    "portfolio_data": {
+      "title": "Portfolio Config & Sections",
+      "description": "Dynamic control settings for Hero, About, Skills, Services, Projects, Experience, Certificates, Testimonials, Blog",
+      "type": "object",
+      "properties": {
+        "section": { "type": "string" },
+        "content": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

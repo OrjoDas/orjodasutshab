@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /contact_messages/{docId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+    match /project_bookings/{docId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+    match /ai_queries/{docId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+    match /portfolio_data/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /portfolio/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

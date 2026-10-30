@@ -1,216 +1,324 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PROJECTS_DATA } from '../data/portfolioData';
 import { ProjectItem } from '../types';
 import { ProjectCaseStudyModal } from './ProjectCaseStudyModal';
-import {
-  ExternalLink,
-  Github,
-  Maximize2,
-  X,
-  Rocket,
-  ShieldCheck,
-  CheckCircle2,
-  FileText,
-} from 'lucide-react';
-
-const CATEGORIES = ['All', 'Full Stack', '3D & WebGL', 'AI & Cloud'] as const;
 
 export const ProjectsSection: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [activeLightboxImage, setActiveLightboxImage] = useState<string | null>(null);
   const [selectedCaseStudy, setSelectedCaseStudy] = useState<ProjectItem | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
 
-  const filteredProjects =
-    activeCategory === 'All'
-      ? PROJECTS_DATA
-      : PROJECTS_DATA.filter((p) => p.category === activeCategory);
+  useEffect(() => {
+    const root = sectionRef.current;
+    if (!root) return;
+
+    const cards = root.querySelectorAll<HTMLElement>('.p-card');
+    if (!cards.length) return;
+
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 1. ENTRANCE: IntersectionObserver
+    let observer: IntersectionObserver | null = null;
+    if (!prefersReduced && 'IntersectionObserver' in window) {
+      observer = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('in');
+              obs.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.12 }
+      );
+      cards.forEach((card) => observer?.observe(card));
+    } else {
+      cards.forEach((card) => card.classList.add('in'));
+    }
+
+    if (prefersReduced) return;
+
+    // 2. SCROLL-VELOCITY WARP & 3. IMAGE PARALLAX
+    let lastScrollY = window.scrollY || window.pageYOffset;
+    let vel = 0;
+    let rafId: number;
+
+    const onFrame = () => {
+      const currentScrollY = window.scrollY || window.pageYOffset;
+      const dy = currentScrollY - lastScrollY;
+      lastScrollY = currentScrollY;
+
+      // clamp(dy, -70, 70)
+      const clampedDy = Math.max(-70, Math.min(70, dy));
+      vel += (clampedDy - vel) * 0.1;
+
+      const viewportHeight = window.innerHeight;
+
+      cards.forEach((card, index) => {
+        const rect = card.getBoundingClientRect();
+
+        // Skip if far off-screen
+        if (rect.bottom < -200 || rect.top > viewportHeight + 200) {
+          return;
+        }
+
+        const media = card.querySelector('.p-media') as HTMLElement | null;
+        const img = card.querySelector('img.bg') as HTMLImageElement | null;
+
+        // side = +1 for even-index (left column) and -1 for odd-index (right column)
+        const side = index % 2 === 0 ? 1 : -1;
+
+        if (media) {
+          media.style.transform = `perspective(900px) rotateX(${vel * -0.18}deg) rotateY(${vel * 0.14 * side}deg) skewY(${vel * 0.1 * side}deg)`;
+          media.style.transformOrigin = '50% 50%';
+        }
+
+        if (img) {
+          const cardCenterY = rect.top + rect.height / 2;
+          const t = (cardCenterY - viewportHeight / 2) / viewportHeight;
+          img.style.transform = `translateY(${t * -6}%)`;
+        }
+      });
+
+      rafId = requestAnimationFrame(onFrame);
+    };
+
+    rafId = requestAnimationFrame(onFrame);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (observer) observer.disconnect();
+    };
+  }, []);
+
+  const totalCount = String(PROJECTS_DATA.length).padStart(2, '0');
 
   return (
-    <section id="projects" className="py-24 relative z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-xs font-mono uppercase tracking-widest">
-            <Rocket className="w-3.5 h-3.5" /> 05. Featured Showcase
+    <>
+      <style>{`
+        /* Scoped Projects Section Styles */
+        .projects-section-wrap {
+          max-width: 1500px;
+          margin: 0 auto;
+          padding: clamp(60px, 9vw, 120px) 3vw;
+          box-sizing: border-box;
+          position: relative;
+          z-index: 10;
+        }
+
+        .projects-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: stretch;
+          margin-bottom: clamp(40px, 6vw, 80px);
+        }
+
+        .projects-giant-title {
+          margin: 0;
+          font-weight: 400;
+          line-height: .9;
+          letter-spacing: -.045em;
+          font-size: clamp(3rem, 15.5vw, 14rem);
+          color: #ffffff;
+          text-transform: uppercase;
+        }
+
+        .projects-meta-col {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          align-items: flex-end;
+          padding-bottom: clamp(10px, 1.5vw, 24px);
+        }
+
+        .projects-count-num {
+          font-size: clamp(1.4rem, 3.4vw, 3rem);
+          font-weight: 400;
+          line-height: 1;
+          color: #9a9cb5;
+        }
+
+        .projects-arrow-icon {
+          width: clamp(28px, 4vw, 52px);
+          height: clamp(28px, 4vw, 52px);
+          color: #ffffff;
+        }
+
+        .projects-stagger-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: clamp(40px, 6vw, 90px) 2vw;
+        }
+
+        /* Even cards (right column, 2nd, 4th, 6th) staggered */
+        .projects-stagger-grid .p-card:nth-child(2n) {
+          margin-top: clamp(0px, 6vw, 90px);
+        }
+
+        @media (max-width: 760px) {
+          .projects-stagger-grid {
+            grid-template-columns: 1fr;
+          }
+          .projects-stagger-grid .p-card:nth-child(2n) {
+            margin-top: 0;
+          }
+        }
+
+        .p-card {
+          display: block;
+          text-decoration: none;
+          color: inherit;
+          cursor: pointer;
+          opacity: 0;
+          transform: translateY(70px);
+          transition: opacity .8s ease, transform .9s cubic-bezier(.2, .7, .2, 1);
+        }
+
+        .p-card.in {
+          opacity: 1;
+          transform: none;
+        }
+
+        .p-media {
+          position: relative;
+          aspect-ratio: 16/11;
+          border-radius: 22px;
+          overflow: hidden;
+          will-change: transform;
+          background: #101426;
+          transform-origin: 50% 50%;
+        }
+
+        .p-media img.bg {
+          position: absolute;
+          inset: -8% 0;
+          width: 100%;
+          height: 116%;
+          object-fit: cover;
+          display: block;
+          will-change: transform;
+        }
+
+        .p-tags {
+          font-size: .78rem;
+          letter-spacing: .04em;
+          color: #9a9cb5;
+          margin: 18px 0 6px;
+          text-transform: uppercase;
+        }
+
+        .p-title {
+          display: flex;
+          align-items: center;
+          font-size: clamp(1.6rem, 3.2vw, 3rem);
+          letter-spacing: -.03em;
+          font-weight: 400;
+          margin: 0;
+          color: #ffffff;
+        }
+
+        .p-title .ar {
+          display: inline-block;
+          width: 0;
+          opacity: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          transition: width .45s cubic-bezier(.2, .7, .2, 1), opacity .3s, margin .45s;
+        }
+
+        .p-card:hover .p-title .ar,
+        .p-card:focus-visible .p-title .ar {
+          width: 1.1em;
+          opacity: 1;
+          margin-right: .35em;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .p-card {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+          }
+          .p-media,
+          .p-media img.bg,
+          .p-title .ar {
+            transform: none !important;
+            transition: none !important;
+          }
+        }
+      `}</style>
+
+      <section
+        id="projects"
+        ref={sectionRef}
+        className="projects projects-section-wrap"
+      >
+        {/* Header row */}
+        <div className="projects-header-row">
+          <h2 className="projects-giant-title">PROJECTS</h2>
+          <div className="projects-meta-col">
+            <span className="projects-count-num">{totalCount}</span>
+            <svg
+              className="projects-arrow-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="7" y1="7" x2="17" y2="17" />
+              <polyline points="7 17 17 17 17 7" />
+            </svg>
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            Selected Engineering &{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">
-              Full Stack Projects
-            </span>
-          </h2>
-          <p className="text-slate-400 text-sm sm:text-base">
-            Explore live production web apps, interactive 3D WebGL portals, and AI-powered SaaS platforms built with clean code and modern architecture.
-          </p>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex flex-wrap justify-center gap-2 mb-12">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-5 py-2 rounded-xl text-xs font-mono tracking-wider transition-all cursor-pointer ${
-                activeCategory === cat
-                  ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] scale-105'
-                  : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* Staggered Grid */}
+        <div className="projects-stagger-grid">
+          {PROJECTS_DATA.map((project) => {
+            const formattedTags = project.tags && project.tags.length > 0
+              ? project.tags.slice(0, 3).join(' • ')
+              : 'Web • Architecture • Design';
 
-        {/* Large Projects Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProjects.map((project, index) => (
-            <motion.div
-              key={project.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ y: -8 }}
-              className="bg-slate-900/90 border border-white/15 rounded-3xl overflow-hidden backdrop-blur-xl shadow-2xl hover:border-cyan-400/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.3)] transition-all group flex flex-col justify-between"
-            >
-              <div>
-                {/* Image Preview Container */}
-                <div className="relative h-52 overflow-hidden bg-slate-950">
+            return (
+              <a
+                key={project.id}
+                href={`#/projects/${project.id}`}
+                data-slug={project.id}
+                onClick={(e) => {
+                  // Let the Case Study engine or case study modal handle it
+                  const slug = project.id;
+                  const event = new CustomEvent('open-case-study', { detail: { slug, card: e.currentTarget } });
+                  window.dispatchEvent(event);
+                }}
+                className="p-card"
+                aria-label={`View case study for ${project.title}`}
+              >
+                <div className="p-media">
                   <img
                     src={project.image}
                     alt={project.title}
+                    className="bg"
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-
-                  {/* Top Badges */}
-                  <div className="absolute top-3 left-3 flex items-center gap-2">
-                    <span className="px-3 py-1 rounded-full bg-slate-950/80 border border-white/20 text-[10px] font-mono text-cyan-400 font-semibold backdrop-blur-md">
-                      {project.category}
-                    </span>
-                    {project.featured && (
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-mono text-emerald-400 font-bold">
-                        FEATURED
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Lightbox Zoom Trigger */}
-                  <button
-                    onClick={() => setActiveLightboxImage(project.image)}
-                    className="absolute top-3 right-3 p-2 rounded-xl bg-slate-950/70 border border-white/20 text-slate-300 hover:text-white hover:bg-slate-900 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Zoom Image"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
                 </div>
-
-                {/* Content Details */}
-                <div className="p-6 space-y-4">
-                  {/* Numeric Index + Title */}
-                  <div className="flex items-start gap-2.5">
-                    <span className="text-sm font-black font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-lg">
-                      0{index + 1}
-                    </span>
-                    <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors leading-snug">
-                      {project.title}
-                    </h3>
-                  </div>
-
-                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                    {project.description}
-                  </p>
-
-                  {/* Key Metrics if available */}
-                  {project.metrics && (
-                    <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-[11px] font-mono text-cyan-300 flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                      <span>{project.metrics}</span>
-                    </div>
-                  )}
-
-                  {/* Tech Tags */}
-                  <div className="flex flex-wrap gap-1.5 pt-2">
-                    {project.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-mono text-slate-300"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="p-6 pt-0 flex flex-col sm:flex-row items-center gap-2">
-                <button
-                  onClick={() => setSelectedCaseStudy(project)}
-                  className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-purple-600/30 border border-purple-500/50 text-purple-200 hover:bg-purple-600 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <FileText className="w-3.5 h-3.5" /> Case Study
-                </button>
-
-                <div className="w-full sm:w-auto flex items-center gap-2">
-                  <a
-                    href={project.liveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:scale-[1.02] transition-transform shadow-md"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" /> Demo
-                  </a>
-
-                  <a
-                    href={project.githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2.5 px-3 rounded-xl bg-white/10 border border-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-white/20 transition-colors"
-                  >
-                    <Github className="w-3.5 h-3.5" /> Code
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                <div className="p-tags">{formattedTags}</div>
+                <h3 className="p-title">
+                  <span className="ar">→</span>
+                  <span>{project.title}</span>
+                </h3>
+              </a>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
-      {/* Deep-Dive Case Study Modal */}
+      {/* Case Study Modal */}
       <ProjectCaseStudyModal
         project={selectedCaseStudy}
         onClose={() => setSelectedCaseStudy(null)}
       />
-
-      {/* Lightbox Preview Modal */}
-      <AnimatePresence>
-        {activeLightboxImage && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative max-w-4xl w-full max-h-[85vh] rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-slate-900 flex items-center justify-center p-2"
-            >
-              <button
-                onClick={() => setActiveLightboxImage(null)}
-                className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-slate-950/80 text-white hover:bg-slate-900 border border-white/20"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <img
-                src={activeLightboxImage}
-                alt="Project Full Preview"
-                referrerPolicy="no-referrer"
-                className="max-w-full max-h-[80vh] object-contain rounded-2xl"
-              />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </section>
+    </>
   );
 };

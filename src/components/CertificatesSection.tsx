@@ -33,8 +33,8 @@ export const CertificatesSection: React.FC = () => {
           </p>
         </div>
 
-        {/* 3D Certificate Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 3D Certificate Cards Grid - 2 per line on PC */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
           {CERTIFICATES_DATA.map((cert, index) => (
             <motion.div
               key={cert.id}
@@ -48,14 +48,14 @@ export const CertificatesSection: React.FC = () => {
             >
               <div>
                 {/* Image Banner */}
-                <div className="relative h-40 overflow-hidden bg-slate-950">
+                <div className="relative h-48 sm:h-52 overflow-hidden bg-slate-950">
                   <img
                     src={cert.image}
                     alt={cert.title}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
                   <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/80 border border-white/20 text-[10px] font-mono text-yellow-400 flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-emerald-400" /> VERIFIED
                   </div>

@@ -1,12 +1,11 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { AboutSection } from '../components/AboutSection';
-import { CyberIdCard } from '../components/CyberIdCard';
 import { ExperienceEducationSection } from '../components/ExperienceEducationSection';
 import { CertificatesSection } from '../components/CertificatesSection';
 import { AchievementsSection } from '../components/AchievementsSection';
 import { PageId } from '../types';
-import { User, Award, Shield, ArrowRight, Download, Send } from 'lucide-react';
+import { User, ArrowRight } from 'lucide-react';
 
 interface AboutPageProps {
   onNavigate: (page: PageId) => void;
@@ -51,20 +50,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
       {/* 1. Core About Section (Who am I, Identity log, Philosophy) */}
       <AboutSection />
 
-      {/* 2. Cyber Holographic ID Card */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-xs font-mono uppercase tracking-widest">
-            <Shield className="w-3.5 h-3.5" /> Digital Verification
-          </div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-            Cyber Holographic ID & Card
-          </h2>
-        </div>
-        <CyberIdCard />
-      </section>
-
-      {/* 3. Work Experience & Academic Background */}
+      {/* 2. Journey & Timeline */}
       <ExperienceEducationSection />
 
       {/* 4. Verified Professional Certifications */}

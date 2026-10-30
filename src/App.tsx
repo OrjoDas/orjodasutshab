@@ -25,12 +25,12 @@ import { Bot, Sparkles, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { ThemeMode, PageId } from './types';
 import { PERSONAL_INFO } from './data/portfolioData';
 
-const PAGE_ORDER: { id: PageId; title: string; subtitle: string }[] = [
-  { id: 'home', title: 'Home', subtitle: 'Overview & Highlights' },
-  { id: 'projects', title: 'Projects', subtitle: '120+ Web Applications' },
-  { id: 'services', title: 'Services & Pricing', subtitle: 'Full-Stack Solutions' },
-  { id: 'blog', title: 'Articles & Tutorials', subtitle: 'Engineering Insights' },
-  { id: 'contact', title: 'Contact & Booking', subtitle: 'Let’s Build Together' },
+const PAGE_ORDER: { id: PageId; title: string; displayTitle: string; subtitle: string }[] = [
+  { id: 'home', title: 'Home', displayTitle: 'HOME', subtitle: 'Overview & Highlights' },
+  { id: 'projects', title: 'Projects', displayTitle: 'PROJECTS', subtitle: '120+ Web Applications' },
+  { id: 'services', title: 'Services & Pricing', displayTitle: 'SERVICES', subtitle: 'Full-Stack Solutions' },
+  { id: 'blog', title: 'Articles & Tutorials', displayTitle: 'BLOG', subtitle: 'Engineering Insights' },
+  { id: 'contact', title: 'Contact & Booking', displayTitle: 'CONTACT US', subtitle: 'Let’s Build Together' },
 ];
 
 export default function App() {
@@ -65,7 +65,7 @@ export default function App() {
 
   // Navigate strictly to target page and sync URL hash
   const navigateTo = (page: PageId) => {
-    // Lock transitions for 1.6s to absorb any inertia or momentum
+    // Lock transitions for 1.2s to absorb any inertia or momentum
     transitionLockRef.current = true;
     setScrollDurationMs(0);
     if (scrollTimerRef.current) {
@@ -80,6 +80,9 @@ export default function App() {
         const el = document.getElementById('about');
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+      setTimeout(() => {
+        transitionLockRef.current = false;
+      }, 1200);
       return;
     }
 
@@ -92,7 +95,7 @@ export default function App() {
     setTimeout(() => {
       transitionLockRef.current = false;
       setScrollDurationMs(0);
-    }, 1600);
+    }, 1200);
   };
 
   // Listen to browser forward/backward hash changes
@@ -243,7 +246,7 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      <div className="bg-[#020617] text-slate-100 min-h-screen relative overflow-x-hidden selection:bg-cyan-500 selection:text-slate-950 font-sans flex flex-col justify-between">
+      <div className="bg-[#020617] text-slate-100 min-h-screen relative overflow-x-clip selection:bg-cyan-500 selection:text-slate-950 font-sans flex flex-col justify-between">
         {/* Full-Stack Boot Animation Loading Screen */}
         {!bootFinished && (
           <CyberBootLoader onComplete={() => setBootFinished(true)} />
@@ -291,10 +294,7 @@ export default function App() {
               )}
 
               {currentPage === 'about' && (
-                <HomePage
-                  onNavigate={navigateTo}
-                  onOpenAi={() => setIsAiOpen(true)}
-                />
+                <AboutPage onNavigate={navigateTo} />
               )}
 
               {currentPage === 'projects' && (
@@ -322,87 +322,62 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {/* Global Footer on All Pages */}
-        <FaqNewsletterFooter
-          onNavigate={navigateTo}
-          showFaq={currentPage === 'home' || currentPage === 'services'}
-        />
+        {/* Footer only on Contact Page */}
+        {currentPage === 'contact' && (
+          <FaqNewsletterFooter onNavigate={navigateTo} />
+        )}
 
-        {/* Next Chapter on Scroll Dock */}
+        {/* Lusion-Style Next Page Transition Dock */}
         {nextPage ? (
-          <div className="border-t border-white/10 bg-gradient-to-b from-slate-950 via-slate-900 to-black py-10 px-4 relative z-20 backdrop-blur-2xl">
-            <div className="max-w-2xl mx-auto text-center space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono uppercase tracking-widest shadow-[0_0_20px_rgba(6,182,212,0.25)]">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                <span>Next Step: {nextPage.title}</span>
-                <ArrowDown className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
+          <section
+            onClick={() => navigateTo(nextPage.id)}
+            data-cursor-hover="true"
+            data-cursor-text={nextPage.displayTitle || nextPage.title.toUpperCase()}
+            className="w-full bg-[#0c0c0e] border-t border-white/[0.08] text-white pt-14 sm:pt-20 pb-8 px-6 sm:px-12 lg:px-24 relative z-20 font-sans cursor-pointer group select-none transition-colors duration-300 hover:bg-[#111114]"
+          >
+            <div className="max-w-7xl mx-auto">
+              {/* Top Left: Keep Scrolling / To Learn More */}
+              <div className="text-[11px] sm:text-xs font-mono uppercase tracking-[0.22em] text-white/90 leading-tight">
+                <p>KEEP SCROLLING</p>
+                <p>TO LEARN MORE</p>
               </div>
 
-              {/* 1-Second Progressive Scroll Countdown & Progress Meter */}
-              {(() => {
-                const scrollPercent = Math.min(100, Math.round((scrollDurationMs / REQUIRED_SCROLL_TIME_MS) * 100));
-                const secondsRemaining = Math.max(0, (REQUIRED_SCROLL_TIME_MS - scrollDurationMs) / 1000).toFixed(1);
+              {/* Main Row: Big Next Page Title on Left, Next Page label + Animated Progress Track + Arrow on Right */}
+              <div className="mt-8 sm:mt-12 flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8">
+                <h2 className="text-4xl sm:text-6xl lg:text-7xl font-normal tracking-tight text-white group-hover:text-slate-100 transition-colors">
+                  {nextPage.displayTitle || nextPage.title.toUpperCase()}
+                </h2>
 
-                return (
-                  <div className="space-y-2.5 max-w-sm mx-auto bg-slate-900/90 p-4 rounded-2xl border border-white/15 backdrop-blur-md shadow-xl">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-300 flex items-center gap-1.5">
-                        {scrollDurationMs > 0 ? (
-                          <span className="text-amber-300 font-bold animate-pulse">⏱️ Scrolling...</span>
-                        ) : (
-                          <span>Scroll at bottom for 1s:</span>
-                        )}
-                      </span>
-                      <span className="text-cyan-300 font-extrabold text-sm">
-                        {scrollDurationMs > 0 ? `${secondsRemaining}s remaining` : '1.0s'}
-                      </span>
-                    </div>
+                <div className="flex items-center gap-3 sm:gap-4 md:pb-2">
+                  <span className="text-xs sm:text-sm font-sans uppercase tracking-[0.2em] text-white font-medium">
+                    NEXT PAGE
+                  </span>
 
-                    {/* Progress bar track */}
-                    <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-white/10 shadow-inner">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-cyan-400 transition-all duration-75 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.6)]"
-                        style={{ width: `${scrollPercent}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                      <span>0s</span>
-                      <span className="text-cyan-400 font-bold">{scrollPercent}%</span>
-                      <span>1s</span>
-                    </div>
+                  {/* Horizontal Scroll Progress Track */}
+                  <div className="w-24 sm:w-36 md:w-48 h-[2px] bg-white/20 relative rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-white transition-all duration-75 ease-linear rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.round((scrollDurationMs / REQUIRED_SCROLL_TIME_MS) * 100))}%`,
+                      }}
+                    />
                   </div>
-                );
-              })()}
 
-              <p className="text-xs text-slate-400 font-mono">
-                Keep scrolling down for 1 second or click below to proceed to <strong className="text-cyan-300">{nextPage.title}</strong>
-              </p>
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-white transition-transform duration-300 group-hover:translate-x-2" />
+                </div>
+              </div>
 
-              <button
-                onClick={() => navigateTo(nextPage.id)}
-                data-cursor-hover="true"
-                data-cursor-text={nextPage.title.toUpperCase()}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white font-extrabold text-xs tracking-wider shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] hover:scale-105 transition-all inline-flex items-center justify-center gap-3 font-mono uppercase cursor-pointer"
-              >
-                <span>Continue to {nextPage.title}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {/* Bottom Row of 5 Evenly Distributed Plus Marks (+) */}
+              <div className="mt-14 sm:mt-20 pt-6 border-t border-white/[0.08] grid grid-cols-5 text-center text-white/40 text-base sm:text-lg font-light select-none">
+                <span>+</span>
+                <span>+</span>
+                <span>+</span>
+                <span>+</span>
+                <span>+</span>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="border-t border-white/10 bg-slate-950 py-8 px-4 relative z-20 text-center font-mono">
-            <button
-              onClick={() => navigateTo('home')}
-              data-cursor-hover="true"
-              data-cursor-text="HOME"
-              className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white text-white hover:text-slate-950 text-xs font-bold uppercase tracking-wider transition-all border border-white/20 cursor-pointer inline-flex items-center gap-2"
-            >
-              <span>Back to Home</span>
-              <ArrowUp className="w-4 h-4 text-cyan-400" />
-            </button>
-          </div>
-        )}
+          </section>
+        ) : null}
 
         {/* Floating AI Chatbot Button */}
         <button

@@ -51,7 +51,7 @@ export interface EducationItem {
   institution: string;
   period: string;
   description: string;
-  type: 'University' | 'College' | 'Course' | 'Certification';
+  type: 'University' | 'College' | 'Course' | 'Certification' | 'Diploma';
 }
 
 export interface CertificateItem {

@@ -1,187 +1,167 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
-import { EXPERIENCE_DATA, EDUCATION_DATA } from '../data/portfolioData';
 import {
-  Briefcase,
   GraduationCap,
+  TrendingUp,
   Calendar,
-  MapPin,
-  CheckCircle2,
   Building2,
-  Award,
-  BookOpen,
+  CheckCircle2,
+  Sparkles,
+  Compass,
 } from 'lucide-react';
 
-export const ExperienceEducationSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'experience' | 'education'>('experience');
+interface TimelineItem {
+  id: string;
+  year: string;
+  role: string;
+  organization: string;
+  description: string;
+  isCurrent?: boolean;
+  type: string;
+  icon: 'education' | 'marketing';
+  tags: string[];
+}
 
+const TIMELINE_ITEMS: TimelineItem[] = [
+  {
+    id: 'bspi-diploma',
+    year: '2025 — Present',
+    role: 'Diploma in Computer Engineering',
+    organization: 'Bangladesh Sweden Polytechnic Institute (BSPI)',
+    description: 'Specializing in computer systems, networking, and software development fundamentals.',
+    isCurrent: true,
+    type: 'Academic Program',
+    icon: 'education',
+    tags: ['Computer Systems', 'Networking', 'Software Development', 'BSPI'],
+  },
+  {
+    id: 'digital-marketing',
+    year: '2025',
+    role: 'Digital Marketing Strategist',
+    organization: 'Freelance / Projects',
+    description: 'Developing high-conversion strategies for various digital platforms and optimizing web presence.',
+    isCurrent: false,
+    type: 'Professional Practice',
+    icon: 'marketing',
+    tags: ['Marketing Strategy', 'Web Optimization', 'Conversion Growth', 'Freelance'],
+  },
+];
+
+export const ExperienceEducationSection: React.FC = () => {
   return (
-    <section id="experience" className="py-24 relative z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="experience" className="py-20 sm:py-28 relative z-10 font-sans overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest">
-            <Briefcase className="w-3.5 h-3.5" /> 06 & 07. Career & Academic Journey
+        <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono uppercase tracking-widest shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+            <Compass className="w-3.5 h-3.5" /> Journey & Timeline
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            Work Experience &{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-              Education Timeline
+          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+            Journey &{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-400">
+              Timeline
             </span>
           </h2>
-          <p className="text-slate-400 text-sm sm:text-base">
-            Detailed timeline of professional engineering positions, client leadership, university degrees, and technical certifications.
+          <p className="text-slate-400 text-sm sm:text-base font-mono">
+            Academic milestones and professional marketing & engineering pursuits.
           </p>
         </div>
 
-        {/* Tab Toggle */}
-        <div className="flex justify-center mb-12">
-          <div className="p-1.5 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2 backdrop-blur-md">
-            <button
-              onClick={() => setActiveTab('experience')}
-              className={`px-6 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-                activeTab === 'experience'
-                  ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Briefcase className="w-4 h-4" /> Work Experience
-            </button>
-            <button
-              onClick={() => setActiveTab('education')}
-              className={`px-6 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
-                activeTab === 'education'
-                  ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" /> Education & Courses
-            </button>
-          </div>
-        </div>
+        {/* Timeline Container */}
+        <div className="max-w-3xl mx-auto relative">
+          {/* Vertical Glowing Line */}
+          <div className="absolute left-6 sm:left-1/2 top-4 bottom-4 w-0.5 bg-gradient-to-b from-cyan-400 via-purple-500 to-emerald-400 -translate-x-1/2 opacity-70" />
 
-        {/* Vertical Timeline Container */}
-        <div className="max-w-4xl mx-auto relative">
-          {/* Central Vertical Line */}
-          <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-500 via-cyan-400 to-emerald-400 -translate-x-1/2 hidden sm:block" />
+          <div className="space-y-12 sm:space-y-16">
+            {TIMELINE_ITEMS.map((item, idx) => {
+              const isTopItem = idx === 0;
+              const isEven = idx % 2 === 0;
+              // User requirement: Top item slides in from right side (x: +200), bottom item slides in from left side (x: -200)
+              const slideFromX = isTopItem ? 200 : -200;
 
-          {activeTab === 'experience' ? (
-            /* Experience Items */
-            <div className="space-y-12">
-              {EXPERIENCE_DATA.map((exp, idx) => {
-                const isEven = idx % 2 === 0;
-                return (
+              return (
+                <div
+                  key={item.id}
+                  className={`relative flex flex-col sm:flex-row items-start ${
+                    isEven ? 'sm:flex-row-reverse' : ''
+                  }`}
+                >
+                  {/* Central Node Dot with Animated Scale & Glow */}
                   <motion.div
-                    key={exp.id}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: idx * 0.1 }}
-                    className={`relative flex flex-col sm:flex-row items-center ${
-                      isEven ? 'sm:flex-row-reverse' : ''
-                    }`}
+                    initial={{ scale: 0, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={{ once: false, amount: 0.2 }}
+                    transition={{ duration: 0.5, delay: idx * 0.15, type: 'spring', stiffness: 220 }}
+                    className="absolute left-6 sm:left-1/2 -translate-x-1/2 top-6 w-10 h-10 rounded-full bg-[#0B0B0D] border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(94,230,201,0.5)] z-20"
                   >
-                    {/* Timeline Node Dot */}
-                    <div className="absolute left-4 sm:left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-slate-950 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.6)] z-20">
-                      <Briefcase className="w-4 h-4 text-cyan-400" />
-                    </div>
+                    {item.icon === 'education' ? (
+                      <GraduationCap className="w-5 h-5 text-cyan-300" />
+                    ) : (
+                      <TrendingUp className="w-5 h-5 text-purple-400" />
+                    )}
+                  </motion.div>
 
-                    {/* Timeline Content Card */}
-                    <div className="w-full sm:w-[calc(50%-2.5rem)] ml-10 sm:ml-0">
-                      <div className="bg-slate-900/90 border border-white/15 rounded-3xl p-6 backdrop-blur-xl shadow-xl hover:border-cyan-400/40 transition-all space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
-                          <div>
-                            <h3 className="text-lg font-bold text-white">
-                              {exp.role}
-                            </h3>
-                            <div className="text-xs font-mono text-cyan-400 flex items-center gap-1.5 mt-0.5">
-                              <Building2 className="w-3.5 h-3.5" />
-                              <span>{exp.company}</span>
-                            </div>
-                          </div>
-                          <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-mono text-slate-300 flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-purple-400" />
-                            {exp.period}
-                          </span>
-                        </div>
+                  {/* Timeline Card with Slide-in Animation (Top from right, Bottom from left) */}
+                  <motion.div
+                    initial={{ opacity: 0, x: slideFromX, scale: 0.94 }}
+                    whileInView={{ opacity: 1, x: 0, scale: 1 }}
+                    viewport={{ once: false, amount: 0.2 }}
+                    transition={{
+                      duration: 0.85,
+                      delay: isTopItem ? 0.05 : 0.15,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
+                    className="w-full sm:w-[calc(50%-2.5rem)] pl-16 sm:pl-0"
+                  >
+                    <div className="bg-[#0f1118]/90 border border-white/12 rounded-3xl p-6 sm:p-7 backdrop-blur-2xl shadow-2xl hover:border-cyan-400/50 hover:shadow-[0_0_35px_rgba(6,182,212,0.15)] transition-all space-y-4 group">
+                      {/* Top Badges */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                        <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-cyan-300 font-semibold uppercase tracking-wider">
+                          {item.type}
+                        </span>
 
-                        <ul className="space-y-2 text-xs text-slate-300">
-                          {exp.description.map((desc, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                              <span>{desc}</span>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <div className="flex flex-wrap gap-1.5 pt-2">
-                          {exp.skillsUsed.map((sk) => (
-                            <span
-                              key={sk}
-                              className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 text-[10px] font-mono border border-cyan-500/20"
-                            >
-                              {sk}
-                            </span>
-                          ))}
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs font-mono font-bold text-cyan-300">
+                          <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>{item.year}</span>
+                          {item.isCurrent && (
+                            <span className="ml-1 inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          )}
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          ) : (
-            /* Education Items */
-            <div className="space-y-12">
-              {EDUCATION_DATA.map((edu, idx) => {
-                const isEven = idx % 2 === 0;
-                return (
-                  <motion.div
-                    key={edu.id}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: idx * 0.1 }}
-                    className={`relative flex flex-col sm:flex-row items-center ${
-                      isEven ? 'sm:flex-row-reverse' : ''
-                    }`}
-                  >
-                    {/* Node Dot */}
-                    <div className="absolute left-4 sm:left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-slate-950 border-2 border-purple-400 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.6)] z-20">
-                      <GraduationCap className="w-4 h-4 text-purple-400" />
-                    </div>
 
-                    <div className="w-full sm:w-[calc(50%-2.5rem)] ml-10 sm:ml-0">
-                      <div className="bg-slate-900/90 border border-white/15 rounded-3xl p-6 backdrop-blur-xl shadow-xl hover:border-purple-400/40 transition-all space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                          <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-[10px] font-mono text-purple-300 font-semibold">
-                            {edu.type}
-                          </span>
-                          <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-cyan-400" />
-                            {edu.period}
-                          </span>
-                        </div>
-
-                        <h3 className="text-lg font-bold text-white">
-                          {edu.degree}
+                      {/* Role & Organization */}
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">
+                          {item.role}
                         </h3>
-
                         <div className="text-xs font-mono text-slate-300 flex items-center gap-1.5">
-                          <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>{edu.institution}</span>
+                          <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                          <span>{item.organization}</span>
                         </div>
+                      </div>
 
-                        <p className="text-xs text-slate-400 leading-relaxed pt-1">
-                          {edu.description}
-                        </p>
+                      {/* Description */}
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+                        {item.description}
+                      </p>
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1.5 pt-2">
+                        {item.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2.5 py-0.5 rounded-md bg-white/5 text-slate-300 text-[11px] font-mono border border-white/10"
+                          >
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </motion.div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

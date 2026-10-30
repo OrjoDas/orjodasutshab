@@ -10,9 +10,326 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#0B0B0D] text-[#F2F1ED] antialiased selection:bg-[#5EE6C9]/30 selection:text-[#5EE6C9] overflow-x-hidden" style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+  <body class="bg-[#0B0B0D] text-[#F2F1ED] antialiased selection:bg-[#5EE6C9]/30 selection:text-[#5EE6C9] overflow-x-clip" style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <canvas id="fluid-cursor"></canvas>
+    <style>
+      #fluid-cursor {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+        display: block;
+      }
+    </style>
+    <script>
+      (function () {
+        const canvas = document.getElementById('fluid-cursor');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let W = 0, H = 0;
+        let dpr = 1;
+        let Nx = 0, Ny = 0, R = 0, S = 0, cell = 0;
+        let u, v, u0, v0, d, d0, p, dv;
+        let offCanvas, offCtx, imgData;
+
+        function resize() {
+          const rawW = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 0) || 300;
+          const rawH = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 0) || 150;
+          W = Math.max(1, Math.round(rawW));
+          H = Math.max(1, Math.round(rawH));
+          dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+          canvas.width = Math.max(1, Math.round(W * dpr));
+          canvas.height = Math.max(1, Math.round(H * dpr));
+
+          const calcNx = Math.round(W / 7);
+          Nx = Math.max(40, Math.min(200, isNaN(calcNx) ? 40 : calcNx));
+          const calcNy = Math.round((Nx * H) / W);
+          Ny = Math.max(24, isNaN(calcNy) ? 24 : calcNy);
+          R = Nx + 2;
+          S = R * (Ny + 2);
+          cell = W / Nx;
+
+          u = new Float32Array(S);
+          v = new Float32Array(S);
+          u0 = new Float32Array(S);
+          v0 = new Float32Array(S);
+          d = new Float32Array(S);
+          d0 = new Float32Array(S);
+          p = new Float32Array(S);
+          dv = new Float32Array(S);
+
+          offCanvas = document.createElement('canvas');
+          offCanvas.width = Nx;
+          offCanvas.height = Ny;
+          offCtx = offCanvas.getContext('2d');
+          imgData = offCtx ? offCtx.createImageData(Nx, Ny) : null;
+        }
+
+        resize();
+
+        function bnd(b, x) {
+          for (let j = 1; j <= Ny; j++) {
+            const row = j * R;
+            x[row + 0] = b === 1 ? -x[row + 1] : x[row + 1];
+            x[row + (Nx + 1)] = b === 1 ? -x[row + Nx] : x[row + Nx];
+          }
+          for (let i = 1; i <= Nx; i++) {
+            x[0 * R + i] = b === 2 ? -x[1 * R + i] : x[1 * R + i];
+            x[(Ny + 1) * R + i] = b === 2 ? -x[Ny * R + i] : x[Ny * R + i];
+          }
+          x[0] = 0.5 * (x[1] + x[R]);
+          x[Nx + 1] = 0.5 * (x[Nx] + x[R + Nx + 1]);
+          x[(Ny + 1) * R] = 0.5 * (x[Ny * R] + x[(Ny + 1) * R + 1]);
+          x[(Ny + 1) * R + (Nx + 1)] = 0.5 * (x[Ny * R + (Nx + 1)] + x[(Ny + 1) * R + Nx]);
+        }
+
+        function advect(b, out, src, uu, vv) {
+          for (let j = 1; j <= Ny; j++) {
+            const row = j * R;
+            for (let i = 1; i <= Nx; i++) {
+              const k = row + i;
+              let x = i - uu[k];
+              let y = j - vv[k];
+              if (x < 0.5) x = 0.5;
+              else if (x > Nx + 0.5) x = Nx + 0.5;
+              if (y < 0.5) y = 0.5;
+              else if (y > Ny + 0.5) y = Ny + 0.5;
+
+              const i0 = Math.floor(x);
+              const i1 = i0 + 1;
+              const j0 = Math.floor(y);
+              const j1 = j0 + 1;
+
+              const s1 = x - i0;
+              const s0 = 1 - s1;
+              const t1 = y - j0;
+              const t0 = 1 - t1;
+
+              const row0 = j0 * R;
+              const row1 = j1 * R;
+
+              out[k] =
+                s0 * (t0 * src[row0 + i0] + t1 * src[row1 + i0]) +
+                s1 * (t0 * src[row0 + i1] + t1 * src[row1 + i1]);
+            }
+          }
+          bnd(b, out);
+        }
+
+        function project() {
+          for (let j = 1; j <= Ny; j++) {
+            const row = j * R;
+            for (let i = 1; i <= Nx; i++) {
+              const k = row + i;
+              dv[k] = -0.5 * (u[k + 1] - u[k - 1] + v[k + R] - v[k - R]);
+              p[k] = 0;
+            }
+          }
+          bnd(0, dv);
+          bnd(0, p);
+
+          for (let it = 0; it < 14; it++) {
+            for (let j = 1; j <= Ny; j++) {
+              const row = j * R;
+              for (let i = 1; i <= Nx; i++) {
+                const k = row + i;
+                p[k] = (dv[k] + p[k - 1] + p[k + 1] + p[k - R] + p[k + R]) * 0.25;
+              }
+            }
+            bnd(0, p);
+          }
+
+          for (let j = 1; j <= Ny; j++) {
+            const row = j * R;
+            for (let i = 1; i <= Nx; i++) {
+              const k = row + i;
+              u[k] -= 0.5 * (p[k + 1] - p[k - 1]);
+              v[k] -= 0.5 * (p[k + R] - p[k - R]);
+            }
+          }
+          bnd(1, u);
+          bnd(2, v);
+        }
+
+        function step() {
+          u0.set(u);
+          v0.set(v);
+          advect(1, u, u0, u0, v0);
+          advect(2, v, v0, u0, v0);
+          project();
+          for (let k = 0; k < S; k++) {
+            u[k] *= 0.985;
+            v[k] *= 0.985;
+          }
+          d0.set(d);
+          advect(0, d, d0, u, v);
+          for (let k = 0; k < S; k++) {
+            d[k] = Math.min(1.3, d[k] * 0.966);
+          }
+        }
+
+        function splat(px, py, dx, dy, amt, radiusScale) {
+          const rScale = radiusScale || 0.72;
+          const cx = px / cell;
+          const cy = py / cell;
+          // Slightly increased, refined fluid ribbon radius
+          const rad = Math.max(2.1, (Nx / 50) * rScale);
+          const r2 = rad * rad;
+          const iMin = Math.max(1, Math.floor(cx - rad * 2.2));
+          const iMax = Math.min(Nx, Math.ceil(cx + rad * 2.2));
+          const jMin = Math.max(1, Math.floor(cy - rad * 2.2));
+          const jMax = Math.min(Ny, Math.ceil(cy + rad * 2.2));
+
+          const pushPower = 0.28 + 0.58 * Math.min(1, rScale);
+          for (let j = jMin; j <= jMax; j++) {
+            const row = j * R;
+            const dy2 = (j - cy) * (j - cy);
+            for (let i = iMin; i <= iMax; i++) {
+              const distSq = (i - cx) * (i - cx) + dy2;
+              const g = Math.exp(-distSq / r2);
+              const k = row + i;
+              u[k] += (dx / cell) * g * pushPower;
+              v[k] += (dy / cell) * g * pushPower;
+              d[k] += amt * g;
+            }
+          }
+        }
+
+        let hasLastPos = false;
+        let lx = 0, ly = 0;
+
+        window.addEventListener('pointerdown', function (e) {
+          lx = e.clientX;
+          ly = e.clientY;
+          hasLastPos = true;
+          splat(lx, ly, 0, 0, 0.14, 0.68);
+        });
+
+        window.addEventListener('pointermove', function (e) {
+          const x = e.clientX;
+          const y = e.clientY;
+          if (!hasLastPos) {
+            lx = x;
+            ly = y;
+            hasLastPos = true;
+            return;
+          }
+          const dx = x - lx;
+          const dy = y - ly;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 0.35) return;
+
+          // Speed-based dynamic response (slightly enhanced size & presence):
+          const speed = Math.min(1, dist / (cell * 2.2));
+          const amt = 0.018 + Math.pow(speed, 1.8) * 0.34;
+          const radiusScale = 0.65 + 0.40 * speed;
+
+          const n = Math.max(1, Math.ceil(dist / (cell * 0.55)));
+          for (let s = 1; s <= n; s++) {
+            splat(
+              lx + (dx * s) / n,
+              ly + (dy * s) / n,
+              dx / n,
+              dy / n,
+              (amt / n) * 1.25,
+              radiusScale
+            );
+          }
+          lx = x;
+          ly = y;
+        });
+
+        function smoothstep(x) {
+          if (x <= 0) return 0;
+          if (x >= 1) return 1;
+          return x * x * (3 - 2 * x);
+        }
+
+        const ST = [
+          [0.88, 0.94, 1.0],
+          [0.42, 0.60, 1.0],
+          [1.0, 0.62, 0.80],
+          [1.0, 0.70, 0.42],
+        ];
+
+        function render() {
+          if (!imgData || !offCtx) return;
+          const data = imgData.data;
+          let ptr = 0;
+          for (let j = 1; j <= Ny; j++) {
+            const row = j * R;
+            for (let i = 1; i <= Nx; i++) {
+              const k = row + i;
+              const dd = d[k];
+              if (dd < 0.004) {
+                data[ptr + 3] = 0;
+                ptr += 4;
+                continue;
+              }
+
+              const gx = (d[k + 1] - d[k - 1]) * 0.5;
+              const gy = (d[k + R] - d[k - R]) * 0.5;
+
+              let t = dd * 0.55 + (gx * 1.6 - gy * 1.1) * 0.9 + 0.12;
+              t -= Math.floor(t);
+              const f = t * 4;
+              const a = Math.floor(f);
+              const m = smoothstep(f - a);
+
+              const c0 = ST[a & 3];
+              const c1 = ST[(a + 1) & 3];
+              let r = c0[0] + (c1[0] - c0[0]) * m;
+              let g = c0[1] + (c1[1] - c0[1]) * m;
+              let b = c0[2] + (c1[2] - c0[2]) * m;
+
+              const gm = Math.sqrt(gx * gx + gy * gy);
+              const edge = Math.min(1, gm * 3.2) * 0.55;
+              r += (1 - r) * edge;
+              g += (1 - g) * edge;
+              b += (1 - b) * edge;
+
+              let al = Math.min(1, dd * 1.6);
+              al = smoothstep(al) * 0.75;
+
+              data[ptr] = (r * 255) | 0;
+              data[ptr + 1] = (g * 255) | 0;
+              data[ptr + 2] = (b * 255) | 0;
+              data[ptr + 3] = (al * 255) | 0;
+              ptr += 4;
+            }
+          }
+
+          offCtx.putImageData(imgData, 0, 0);
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+        }
+
+        function loop() {
+          const curW = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 0);
+          const curH = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 0);
+          if (curW > 0 && curH > 0 && (curW !== W || curH !== H)) {
+            resize();
+          }
+          if (imgData && Nx > 0 && Ny > 0) {
+            step();
+            render();
+          }
+          requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+      })();
+    </script>
   </body>
 </html>
 
